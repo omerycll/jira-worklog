@@ -1,0 +1,6 @@
+/*
+  This project uses Tailwind utility classes for styling.
+  The default Vite/Tauri template adds global styles here (especially for input/button),
+  which can conflict with Tailwind-based layout and button variants.
+*/
+

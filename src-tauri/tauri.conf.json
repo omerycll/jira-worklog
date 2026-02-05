@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "XTime",
+  "version": "0.1.0",
+  "identifier": "com.omeryucel.xtime",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "XTime",
+        "width": 450,
+        "height": 700
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "updater": {
+    "active": true,
+    "endpoints": [
+      "https://github.com/omerycll/jira-worklog/releases/latest/download/latest.json"
+    ],
+    "dialog": true,
+    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyNjdCRjg5MzgxQzEzNjMKUldSakV4dzRpYjlud2pMMDd6cjQ2VU9pcmtORmFGWVNUQVE4cndRUFBtT2szcEdscnNHckRvUkMK"
+  }
+}
