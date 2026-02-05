@@ -10,7 +10,7 @@ import { Header } from "./components/Header";
 import { TimerModal } from "./components/TimerModal";
 import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
-import { JiraAccount, JiraIssueOption } from "./types";
+import { JiraAccount, JiraIssueOption, LanguageCode } from "./types";
 
 function App() {
   const [activeAccountId, setActiveAccountId] = useState<string>("");
@@ -21,6 +21,7 @@ function App() {
   const [monthlyHours, setMonthlyHours] = useState(0);
   const [jiraStatus, setJiraStatus] = useState<"connected" | "mock">("mock");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [language, setLanguage] = useState<LanguageCode>("tr");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationTime, setNotificationTime] = useState("17:00");
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(false);
@@ -59,6 +60,12 @@ function App() {
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       setTheme("dark");
       document.documentElement.classList.add("dark");
+    }
+
+    // Language
+    const savedLanguage = localStorage.getItem("language") as LanguageCode | null;
+    if (savedLanguage === "tr" || savedLanguage === "en") {
+      setLanguage(savedLanguage);
     }
 
     // Settings
@@ -150,6 +157,11 @@ function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  };
+
+  const changeLanguage = (lang: LanguageCode) => {
+    setLanguage(lang);
+    localStorage.setItem("language", lang);
   };
 
   const addAccount = async (email: string, domain: string, token: string) => {
@@ -443,7 +455,11 @@ function App() {
 
   const saveTimerWorklog = async () => {
     if (!activeAccountId || !timerIssueKey) {
-      alert("Lütfen bir hesap seçin ve Issue Key girin.");
+      alert(
+        language === "tr"
+          ? "Lütfen bir hesap seçin ve Issue Key girin."
+          : "Please select an account and enter an Issue Key."
+      );
       return;
     }
 
@@ -452,7 +468,7 @@ function App() {
 
     const apiToken = await getSecureToken(account.email);
     if (!apiToken) {
-      alert("API Token bulunamadı.");
+      alert(language === "tr" ? "API Token bulunamadı." : "API token not found.");
       return;
     }
 
@@ -505,14 +521,20 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Log kaydı başarısız: " + response.status);
+        throw new Error(
+          (language === "tr" ? "Log kaydı başarısız: " : "Worklog save failed: ") +
+            response.status
+        );
       }
 
       const displayTime = formatElapsedTime(timeToUseSeconds);
 
       await invoke("send_jira_notification", {
-        title: "Efor Kaydedildi",
-        body: `${timerIssueKey} için ${displayTime} efor girildi.`,
+        title: language === "tr" ? "Efor Kaydedildi" : "Worklog Saved",
+        body:
+          language === "tr"
+            ? `${timerIssueKey} için ${displayTime} efor girildi.`
+            : `${displayTime} logged for ${timerIssueKey}.`,
       });
 
       discardTimer();
@@ -520,7 +542,9 @@ function App() {
 
     } catch (err) {
       console.error(err);
-      alert("Hata oluştu: " + err);
+      alert(
+        (language === "tr" ? "Hata oluştu: " : "An error occurred: ") + String(err)
+      );
     } finally {
       setIsWorklogLoading(false);
     }
@@ -606,12 +630,18 @@ function App() {
       const update = await checkUpdate();
 
       if (!update) {
-        alert("Şu anda yüklü sürüm en güncel sürüm.");
+        alert(
+          language === "tr"
+            ? "Şu anda yüklü sürüm en güncel sürüm."
+            : "The currently installed version is up to date."
+        );
         return;
       }
 
       const confirmInstall = confirm(
-        `Yeni bir sürüm bulundu: ${update.version} (mevcut: ${update.currentVersion}).\n\nŞimdi indirip kurmak ister misin?`
+        language === "tr"
+          ? `Yeni bir sürüm bulundu: ${update.version} (mevcut: ${update.currentVersion}).\n\nŞimdi indirip kurmak ister misin?`
+          : `A new version was found: ${update.version} (current: ${update.currentVersion}).\n\nDo you want to download and install it now?`
       );
       if (!confirmInstall) {
         await update.close();
@@ -628,11 +658,19 @@ function App() {
         }
       });
 
-      alert("Güncelleme indirildi. Uygulama yeniden başlatıldıktan sonra yeni sürüm kullanılacak.");
+      alert(
+        language === "tr"
+          ? "Güncelleme indirildi. Uygulama yeniden başlatıldıktan sonra yeni sürüm kullanılacak."
+          : "Update downloaded. The new version will be used after restarting the application."
+      );
       await update.close();
     } catch (err) {
       console.error("[Updater] Güncelleme kontrolü hata:", err);
-      alert("Güncelleme kontrolü sırasında bir hata oluştu. Detaylar için konsolu kontrol edin.");
+      alert(
+        language === "tr"
+          ? "Güncelleme kontrolü sırasında bir hata oluştu. Detaylar için konsolu kontrol edin."
+          : "An error occurred while checking for updates. See console for details."
+      );
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -653,6 +691,7 @@ function App() {
         toggleTheme={toggleTheme}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
+        language={language}
       />
 
       {currentPage === "dashboard" && (
@@ -675,6 +714,7 @@ function App() {
           theme={theme}
           assignedIssues={assignedIssues}
           isAssignedIssuesLoading={isAssignedIssuesLoading}
+          language={language}
         />
       )}
 
@@ -698,6 +738,8 @@ function App() {
           toggleAutoStart={toggleAutoStart}
           isCheckingUpdate={isCheckingUpdate}
           onCheckUpdates={handleCheckUpdates}
+          language={language}
+          setLanguage={changeLanguage}
         />
       )}
 
@@ -715,6 +757,7 @@ function App() {
           isIssuesLoading={isAssignedIssuesLoading}
           effortHours={timerHoursOverride}
           setEffortHours={setTimerHoursOverride}
+          language={language}
         />
       )}
     </div>

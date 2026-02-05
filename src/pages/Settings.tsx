@@ -1,6 +1,6 @@
 import { Trash2, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { JiraAccount } from "../types";
+import { JiraAccount, LanguageCode } from "../types";
 
 interface SettingsProps {
   accounts: JiraAccount[];
@@ -15,6 +15,8 @@ interface SettingsProps {
   toggleAutoStart: () => void;
   isCheckingUpdate: boolean;
   onCheckUpdates: () => void;
+  language: LanguageCode;
+  setLanguage: (lang: LanguageCode) => void;
 }
 
 export function Settings({
@@ -30,7 +32,10 @@ export function Settings({
   toggleAutoStart,
   isCheckingUpdate,
   onCheckUpdates,
+  language,
+  setLanguage,
 }: SettingsProps) {
+  const isTr = language === "tr";
   const [formEmail, setFormEmail] = useState("");
   const [formDomain, setFormDomain] = useState("");
   const [formToken, setFormToken] = useState("");
@@ -45,38 +50,64 @@ export function Settings({
 
   return (
     <div className="mt-5 grid gap-6">
+      {/* General Settings */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
+        <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-4 font-bold text-lg">
+          {isTr ? "Genel Ayarlar" : "General Settings"}
+        </h3>
+        <div className="flex flex-wrap gap-4 items-center">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
+              {isTr ? "Dil" : "Language"}
+            </label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as LanguageCode)}
+              className="px-2 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="tr">Türkçe</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Create Account Form */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
         <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-4 font-bold text-lg">
-          Yeni Hesap Ekle
+          {isTr ? "Yeni Hesap Ekle" : "Add New Account"}
         </h3>
         <div className="space-y-3">
           <input
             type="email"
             value={formEmail}
             onChange={(e) => setFormEmail(e.target.value)}
-            placeholder="Email (sen@firma.com)"
+            placeholder={
+              isTr ? "Email (sen@firma.com)" : "Email (you@company.com)"
+            }
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
           <input
             type="text"
             value={formDomain}
             onChange={(e) => setFormDomain(e.target.value)}
-            placeholder="Domain (https://x.atlassian.net)"
+            placeholder={
+              isTr ? "Domain (https://x.atlassian.net)" : "Domain (https://x.atlassian.net)"
+            }
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
           <input
             type="password"
             value={formToken}
             onChange={(e) => setFormToken(e.target.value)}
-            placeholder="API Token"
+            placeholder={isTr ? "API Token" : "API Token"}
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
           <button
             onClick={handleAddAccount}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md border-none cursor-pointer text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
           >
-            <Plus size={16} /> Ekle
+            <Plus size={16} /> {isTr ? "Ekle" : "Add"}
           </button>
         </div>
       </div>
@@ -84,11 +115,11 @@ export function Settings({
       {/* Accounts List */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
         <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-4 font-bold text-lg">
-          Kayıtlı Hesaplar
+          {isTr ? "Kayıtlı Hesaplar" : "Saved Accounts"}
         </h3>
         {accounts.length === 0 ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Henüz hesap eklenmedi.
+            {isTr ? "Henüz hesap eklenmedi." : "No accounts have been added yet."}
           </p>
         ) : (
           <div className="grid gap-3">
@@ -106,7 +137,7 @@ export function Settings({
                   </div>
                   {activeAccountId === acc.id && (
                     <span className="inline-block mt-1 text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium border border-blue-100 dark:border-blue-800">
-                      Aktif
+                      {isTr ? "Aktif" : "Active"}
                     </span>
                   )}
                 </div>
@@ -124,39 +155,70 @@ export function Settings({
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
         <h3 className="mt-0 text-slate-900 dark:text-slate-100 font-bold text-lg mb-3">
-          Jira API Key Nasıl Alınır?
+          {isTr ? "Jira API Key Nasıl Alınır?" : "How to Get a Jira API Token?"}
         </h3>
         <ol className="pl-5 list-decimal space-y-2 marker:text-slate-500">
-          <li>
-            Jira Cloud hesabınla giriş yap ve tarayıcıdan{" "}
-            <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200 font-mono text-xs border border-slate-200 dark:border-slate-700">
-              https://id.atlassian.com/manage-profile/security/api-tokens
-            </code>{" "}
-            adresine git.
-          </li>
-          <li>
-            <strong>Create API token</strong> butonuna tıkla ve token için
-            anlamlı bir isim ver (örneğin <em>XTime Desktop</em>).
-          </li>
-          <li>
-            Oluşturulan token&apos;ı kopyala. Bu ekranı kapattıktan sonra token
-            yeniden gösterilmez.
-          </li>
-          <li>
-            Yukarıdaki <strong>Jira domain</strong> ve{" "}
-            <strong>Jira API Key</strong> alanlarını doldur ve{" "}
-            <strong>Ekle</strong> butonuna bas.
-          </li>
-          <li>
-            Uygulama, Jira isteklerinde bu token&apos;ı kullanarak senin adına
-            worklog verilerini okuyacak.
-          </li>
+          {isTr ? (
+            <>
+              <li>
+                Jira Cloud hesabınla giriş yap ve tarayıcıdan{" "}
+                <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200 font-mono text-xs border border-slate-200 dark:border-slate-700">
+                  https://id.atlassian.com/manage-profile/security/api-tokens
+                </code>{" "}
+                adresine git.
+              </li>
+              <li>
+                <strong>Create API token</strong> butonuna tıkla ve token için
+                anlamlı bir isim ver (örneğin <em>XTime Desktop</em>).
+              </li>
+              <li>
+                Oluşturulan token&apos;ı kopyala. Bu ekranı kapattıktan sonra token
+                yeniden gösterilmez.
+              </li>
+              <li>
+                Yukarıdaki <strong>Jira domain</strong> ve{" "}
+                <strong>Jira API Key</strong> alanlarını doldur ve{" "}
+                <strong>Ekle</strong> butonuna bas.
+              </li>
+              <li>
+                Uygulama, Jira isteklerinde bu token&apos;ı kullanarak senin adına
+                worklog verilerini okuyacak.
+              </li>
+            </>
+          ) : (
+            <>
+              <li>
+                Log in with your Jira Cloud account and open{" "}
+                <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200 font-mono text-xs border border-slate-200 dark:border-slate-700">
+                  https://id.atlassian.com/manage-profile/security/api-tokens
+                </code>{" "}
+                in your browser.
+              </li>
+              <li>
+                Click <strong>Create API token</strong> and give it a meaningful
+                name (for example <em>XTime Desktop</em>).
+              </li>
+              <li>
+                Copy the generated token. It will not be shown again after closing
+                the dialog.
+              </li>
+              <li>
+                Fill in the <strong>Jira domain</strong> and{" "}
+                <strong>Jira API Key</strong> fields above and click{" "}
+                <strong>Add</strong>.
+              </li>
+              <li>
+                The app will use this token in Jira requests to read your worklog
+                data.
+              </li>
+            </>
+          )}
         </ol>
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 mt-2">
         <h3 className="mt-0 text-slate-900 dark:text-slate-100 font-bold text-lg mb-4">
-          Bildirim Ayarları
+          {isTr ? "Bildirim Ayarları" : "Notification Settings"}
         </h3>
         <div className="flex items-center gap-3 mb-4">
           <input
@@ -170,7 +232,7 @@ export function Settings({
             htmlFor="notifToggle"
             className="text-sm cursor-pointer text-slate-700 dark:text-slate-300 font-medium"
           >
-            Günlük Hatırlatıcı Aç
+            {isTr ? "Günlük Hatırlatıcı Aç" : "Enable Daily Reminder"}
           </label>
         </div>
 
@@ -186,14 +248,14 @@ export function Settings({
             htmlFor="autoStartToggle"
             className="text-sm cursor-pointer text-slate-700 dark:text-slate-300 font-medium"
           >
-            Windows ile Başlat
+            {isTr ? "Windows ile Başlat" : "Start with Windows"}
           </label>
         </div>
 
         {notificationEnabled && (
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-700 w-fit">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-              Saat:
+              {isTr ? "Saat:" : "Time:"}
             </span>
             <div className="flex items-center gap-1">
               <select
@@ -247,18 +309,20 @@ export function Settings({
           </div>
         )}
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 italic">
-          * Belirlenen saatte, eğer günlük 8 saati tamamlamadıysan masaüstü
-          bildirimi gönderilir.
+          {isTr
+            ? "* Belirlenen saatte, eğer günlük 8 saati tamamlamadıysan masaüstü bildirimi gönderilir."
+            : "* At the specified time, a desktop notification is sent if you have not completed 8 hours for the day."}
         </p>
       </div>
 
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 mt-2">
         <h3 className="mt-0 text-slate-900 dark:text-slate-100 font-bold text-lg mb-3">
-          Uygulama Güncellemesi
+          {isTr ? "Uygulama Güncellemesi" : "Application Update"}
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-          Yeni bir XTime sürümü varsa GitHub üzerinden indirip kurar. Güncelleme
-          tamamlandıktan sonra uygulamayı yeniden başlatman gerekebilir.
+          {isTr
+            ? "Yeni bir XTime sürümü varsa GitHub üzerinden indirip kurar. Güncelleme tamamlandıktan sonra uygulamayı yeniden başlatman gerekebilir."
+            : "If a new XTime version is available, it will be downloaded and installed from GitHub. You may need to restart the app after the update finishes."}
         </p>
         <button
           onClick={onCheckUpdates}
@@ -273,7 +337,13 @@ export function Settings({
             size={16}
             className={isCheckingUpdate ? "animate-spin" : ""}
           />
-          {isCheckingUpdate ? "Güncellemeler kontrol ediliyor..." : "Güncellemeleri Denetle"}
+          {isCheckingUpdate
+            ? isTr
+              ? "Güncellemeler kontrol ediliyor..."
+              : "Checking for updates..."
+            : isTr
+            ? "Güncellemeleri Denetle"
+            : "Check for Updates"}
         </button>
       </div>
     </div>

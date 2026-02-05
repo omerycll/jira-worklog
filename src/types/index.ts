@@ -12,3 +12,5 @@ export interface JiraIssueOption {
   summary: string;
   statusName?: string;
 }
+
+export type LanguageCode = "tr" | "en";

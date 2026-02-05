@@ -1,5 +1,5 @@
 import { Save, X } from "lucide-react";
-import type { JiraIssueOption } from "../types";
+import type { JiraIssueOption, LanguageCode } from "../types";
 
 interface TimerModalProps {
   elapsedSeconds: number;
@@ -15,6 +15,7 @@ interface TimerModalProps {
    // Timer'ın ölçtüğünden bağımsız olarak, Jira'ya kaç saat yazılacağını kontrol eder
   effortHours: string;
   setEffortHours: (v: string) => void;
+  language: LanguageCode;
 }
 
 export function TimerModal({
@@ -31,6 +32,7 @@ export function TimerModal({
   effortHours,
   setEffortHours,
 }: TimerModalProps) {
+  const isTr = language === "tr";
   const displaySeconds = (() => {
     const trimmed = effortHours.trim();
     if (trimmed !== "") {
@@ -48,7 +50,7 @@ export function TimerModal({
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-slate-700 transform scale-100 transition-all">
         <div className="flex justify-between items-center mb-6">
           <h3 className="m-0 text-lg font-bold text-slate-900 dark:text-slate-100">
-            Efor Kaydet
+            {isTr ? "Efor Kaydet" : "Save Worklog"}
           </h3>
           <button
             onClick={onDiscard}
@@ -63,7 +65,7 @@ export function TimerModal({
             {formatElapsedTime(displaySeconds)}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest font-semibold">
-            Geçen Süre
+            {isTr ? "Geçen Süre" : "Elapsed Time"}
           </div>
         </div>
 
@@ -82,7 +84,7 @@ export function TimerModal({
 
         <div className="mb-4">
           <label className="block mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
-            Efor Süresi (saat)
+            {isTr ? "Efor Süresi (saat)" : "Effort Duration (hours)"}
           </label>
           <input
             type="number"
@@ -93,13 +95,15 @@ export function TimerModal({
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
           <p className="mt-1 text-[11px] text-slate-400">
-            Timer süresi otomatik gelir, istersen burada saat olarak güncelleyebilirsin. Örn: 0.5, 1.25
+            {isTr
+              ? "Timer süresi otomatik gelir, istersen burada saat olarak güncelleyebilirsin. Örn: 0.5, 1.25"
+              : "Timer duration comes automatically; you can override it in hours here. Eg: 0.5, 1.25"}
           </p>
         </div>
 
         <div className="mb-4">
           <label className="block mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
-            Bana Atanmış Issue&apos;lar
+            {isTr ? "Bana Atanmış Issue'lar" : "Issues Assigned to Me"}
           </label>
           <select
             value={
@@ -116,7 +120,9 @@ export function TimerModal({
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           >
             <option value="">
-              Listeden seçebilir veya yukarıya elle yazabilirsiniz
+              {isTr
+                ? "Listeden seçebilir veya yukarıya elle yazabilirsiniz"
+                : "You can select from the list or type above"}
             </option>
             {availableIssues.map((issue) => (
               <option key={issue.key} value={issue.key}>
@@ -126,19 +132,23 @@ export function TimerModal({
           </select>
           {isIssuesLoading && (
             <p className="mt-1 text-xs text-slate-400">
-              Sana atanmış issue&apos;lar yükleniyor...
+              {isTr
+                ? "Sana atanmış issue'lar yükleniyor..."
+                : "Loading issues assigned to you..."}
             </p>
           )}
         </div>
 
         <div className="mb-6">
           <label className="block mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
-            Açıklama
+            {isTr ? "Açıklama" : "Description"}
           </label>
           <textarea
             value={timerDescription}
             onChange={(e) => setTimerDescription(e.target.value)}
-            placeholder="Ne üzerinde çalıştınız?"
+            placeholder={
+              isTr ? "Ne üzerinde çalıştınız?" : "What did you work on?"
+            }
             rows={3}
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
@@ -149,13 +159,13 @@ export function TimerModal({
             onClick={onDiscard}
             className="flex-1 py-2.5 px-4 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
           >
-            Vazgeç
+            {isTr ? "Vazgeç" : "Cancel"}
           </button>
           <button
             onClick={onSave}
             className="flex-1 py-2.5 px-4 rounded-md border-none bg-blue-600 hover:bg-blue-700 text-white font-medium cursor-pointer shadow-sm shadow-blue-600/20 flex justify-center items-center gap-2 transition-all hover:shadow-md hover:shadow-blue-600/30"
           >
-            <Save size={18} /> Kaydet
+            <Save size={18} /> {isTr ? "Kaydet" : "Save"}
           </button>
         </div>
       </div>
