@@ -67,20 +67,12 @@ pub fn run() {
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
-                    match event {
-                        // Sol tık: pencereyi göster
-                        TrayIconEvent::Click { .. } => {
-                            let app = tray.app_handle();
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                    if let TrayIconEvent::Click { .. } = event {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
                         }
-                        // Sağ tık: tray menüsünü göster (Göster / Çıkış)
-                        TrayIconEvent::RightClick { .. } => {
-                            let _ = tray.show_menu();
-                        }
-                        _ => {}
                     }
                 })
                 .icon(app.default_window_icon().unwrap().clone())
