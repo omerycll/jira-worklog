@@ -3,8 +3,11 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"   # örn: v0.2.0
+      - "v*.*.*"
   workflow_dispatch:
+
+permissions:
+  contents: write   # <-- BUNU EKLEDİK
 
 jobs:
   publish-tauri:
