@@ -35,7 +35,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyNjdCRjg5MzgxQzEzNjMKUldSakV4dzRpYjlud2pMMDd6cjQ2VU9pcmtORmFGWVNUQVE4cndRUFBtT2szcEdscnNHckRvUkMK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI1MDg0NDY1OUE1MkU2MjYKUldRbTVsS2FaVVFJSllZd1hUS0FGMFZSc2c3K0hidlZuTWVuRS9wY2RvSUp1QkpkNVh4d1RsUlQK",
       "endpoints": [
         "https://github.com/omerycll/jira-worklog/releases/latest/download/latest.json"
       ]
