@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { fetch } from "@tauri-apps/plugin-http";
 import { enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { check as checkUpdate } from "@tauri-apps/plugin-updater";
 import "./App.css";
 
 // Components
@@ -24,6 +25,7 @@ function App() {
   const [notificationTime, setNotificationTime] = useState("17:00");
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(false);
   const [currentPage, setCurrentPage] = useState<"dashboard" | "settings">("dashboard");
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   // Timer State
   const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -513,6 +515,45 @@ function App() {
       .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  const handleCheckUpdates = async () => {
+    try {
+      setIsCheckingUpdate(true);
+      const update = await checkUpdate();
+
+      if (!update) {
+        alert("Şu anda yüklü sürüm en güncel sürüm.");
+        return;
+      }
+
+      const confirmInstall = confirm(
+        `Yeni bir sürüm bulundu: ${update.version} (mevcut: ${update.currentVersion}).\n\nŞimdi indirip kurmak ister misin?`
+      );
+      if (!confirmInstall) {
+        await update.close();
+        return;
+      }
+
+      await update.downloadAndInstall((event) => {
+        if (event.type === "Progress") {
+          console.log(
+            "[Updater] İndirme ilerlemesi:",
+            event.chunkLength,
+            "/",
+            event.contentLength
+          );
+        }
+      });
+
+      alert("Güncelleme indirildi. Uygulama yeniden başlatıldıktan sonra yeni sürüm kullanılacak.");
+      await update.close();
+    } catch (err) {
+      console.error("[Updater] Güncelleme kontrolü hata:", err);
+      alert("Güncelleme kontrolü sırasında bir hata oluştu. Detaylar için konsolu kontrol edin.");
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-5 max-w-5xl font-sans text-slate-900 dark:text-slate-100 min-h-screen bg-slate-50 dark:bg-slate-900">
       <Header
@@ -569,6 +610,8 @@ function App() {
           }}
           isAutoStartEnabled={isAutoStartEnabled}
           toggleAutoStart={toggleAutoStart}
+          isCheckingUpdate={isCheckingUpdate}
+          onCheckUpdates={handleCheckUpdates}
         />
       )}
 

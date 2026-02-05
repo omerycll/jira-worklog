@@ -1,4 +1,4 @@
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { JiraAccount } from "../types";
 
@@ -13,6 +13,8 @@ interface SettingsProps {
   setNotificationTime: (time: string) => void;
   isAutoStartEnabled: boolean;
   toggleAutoStart: () => void;
+  isCheckingUpdate: boolean;
+  onCheckUpdates: () => void;
 }
 
 export function Settings({
@@ -26,6 +28,8 @@ export function Settings({
   setNotificationTime,
   isAutoStartEnabled,
   toggleAutoStart,
+  isCheckingUpdate,
+  onCheckUpdates,
 }: SettingsProps) {
   const [formEmail, setFormEmail] = useState("");
   const [formDomain, setFormDomain] = useState("");
@@ -246,6 +250,31 @@ export function Settings({
           * Belirlenen saatte, eğer günlük 8 saati tamamlamadıysan masaüstü
           bildirimi gönderilir.
         </p>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 mt-2">
+        <h3 className="mt-0 text-slate-900 dark:text-slate-100 font-bold text-lg mb-3">
+          Uygulama Güncellemesi
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+          Yeni bir XTime sürümü varsa GitHub üzerinden indirip kurar. Güncelleme
+          tamamlandıktan sonra uygulamayı yeniden başlatman gerekebilir.
+        </p>
+        <button
+          onClick={onCheckUpdates}
+          disabled={isCheckingUpdate}
+          className={`px-4 py-2 rounded-md border-none cursor-pointer text-sm font-medium flex items-center gap-2 transition-colors shadow-sm ${
+            isCheckingUpdate
+              ? "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-wait"
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }`}
+        >
+          <RefreshCw
+            size={16}
+            className={isCheckingUpdate ? "animate-spin" : ""}
+          />
+          {isCheckingUpdate ? "Güncellemeler kontrol ediliyor..." : "Güncellemeleri Denetle"}
+        </button>
       </div>
     </div>
   );
