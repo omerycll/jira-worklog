@@ -30,14 +30,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
-  },
-  "updater": {
-    "active": true,
-    "endpoints": [
-      "https://github.com/omerycll/jira-worklog/releases/latest/download/latest.json"
     ],
-    "dialog": true,
-    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyNjdCRjg5MzgxQzEzNjMKUldSakV4dzRpYjlud2pMMDd6cjQ2VU9pcmtORmFGWVNUQVE4cndRUFBtT2szcEdscnNHckRvUkMK"
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMyNjdCRjg5MzgxQzEzNjMKUldSakV4dzRpYjlud2pMMDd6cjQ2VU9pcmtORmFGWVNUQVE4cndRUFBtT2szcEdscnNHckRvUkMK",
+      "endpoints": [
+        "https://github.com/omerycll/jira-worklog/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
