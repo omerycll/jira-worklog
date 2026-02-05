@@ -16,7 +16,7 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { JiraAccount } from "../types";
+import { JiraAccount, JiraIssueOption, LanguageCode } from "../types";
 import { open } from "@tauri-apps/plugin-shell";
 
 interface DashboardProps {
@@ -36,6 +36,9 @@ interface DashboardProps {
   lastJql: string;
   checkWorklogs: () => void;
   theme: string;
+  assignedIssues: JiraIssueOption[];
+  isAssignedIssuesLoading: boolean;
+  language: LanguageCode;
 }
 
 export function Dashboard({
@@ -55,13 +58,21 @@ export function Dashboard({
   lastJql,
   checkWorklogs,
   theme,
+  assignedIssues,
+  isAssignedIssuesLoading,
+  language,
 }: DashboardProps) {
+  const isTr = language === "tr";
   return (
     <>
       {accounts.length === 0 && (
         <div className="mt-4 p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm flex items-center gap-2">
-          <span className="font-bold">Hesap bulunamadı.</span> Lütfen ayarlardan
-          bir Jira hesabı ekleyin.
+          <span className="font-bold">
+            {isTr ? "Hesap bulunamadı." : "No account found."}
+          </span>{" "}
+          {isTr
+            ? "Lütfen ayarlardan bir Jira hesabı ekleyin."
+            : "Please add a Jira account from settings."}
         </div>
       )}
 
@@ -71,12 +82,12 @@ export function Dashboard({
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2 uppercase">
               <Activity size={14} />
-              <span>BUGÜNLÜK EFOR</span>
+              <span>{isTr ? "BUGÜNLÜK EFOR" : "TODAY'S EFFORT"}</span>
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-baseline gap-1">
               {workHours.toFixed(1)}{" "}
               <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
-                / 8.0sa
+                / 8.0{isTr ? "sa" : "h"}
               </span>
             </div>
             {/* Progress Bar */}
@@ -94,12 +105,12 @@ export function Dashboard({
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2 uppercase">
               <Activity size={14} />
-              <span>BU HAFTALIK EFOR</span>
+              <span>{isTr ? "BU HAFTALIK EFOR" : "THIS WEEK'S EFFORT"}</span>
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-baseline gap-1">
               {weeklyHours.toFixed(1)}{" "}
               <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
-                / 40.0sa
+                / 40.0{isTr ? "sa" : "h"}
               </span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
@@ -116,13 +127,13 @@ export function Dashboard({
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-2 uppercase">
               <Activity size={14} />
-              <span>BU AYLIK EFOR</span>
+              <span>{isTr ? "BU AYLIK EFOR" : "THIS MONTH'S EFFORT"}</span>
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-baseline gap-1">
               {monthlyHours.toFixed(1)}{" "}
               <span className="text-sm font-normal text-slate-500 dark:text-slate-400">
                 {/* ortalama 22 iş günü * 8 saat */}
-                / 176.0sa
+                / 176.0{isTr ? "sa" : "h"}
               </span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-4 overflow-hidden">
@@ -141,7 +152,7 @@ export function Dashboard({
           {/* Project Reports Pie Chart */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 min-h-[300px]">
             <h3 className="mt-0 mb-6 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Proje Dağılımı
+              {isTr ? "Proje Dağılımı" : "Project Distribution"}
             </h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -207,7 +218,7 @@ export function Dashboard({
           <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 min-h-[300px] relative">
             <div className="flex justify-between items-center mb-6">
               <h3 className="m-0 text-slate-900 dark:text-slate-100 font-bold text-lg">
-                İstatistikler
+                {isTr ? "İstatistikler" : "Statistics"}
               </h3>
               {/* View Mode Toggle */}
               <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md">
@@ -221,7 +232,7 @@ export function Dashboard({
                       : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                     }`}
                 >
-                  Haftalık
+                  {isTr ? "Haftalık" : "Weekly"}
                 </button>
                 <button
                   onClick={() => {
@@ -233,7 +244,7 @@ export function Dashboard({
                       : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                     }`}
                 >
-                  Aylık
+                  {isTr ? "Aylık" : "Monthly"}
                 </button>
               </div>
             </div>
@@ -243,7 +254,10 @@ export function Dashboard({
                 onClick={() => setWeekOffset(weekOffset + 1)}
                 className="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md cursor-pointer text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
-                &lt; Önceki {viewMode === "weekly" ? "Hafta" : "Ay"}
+                &lt;{" "}
+                {isTr
+                  ? `Önceki ${viewMode === "weekly" ? "Hafta" : "Ay"}`
+                  : `Previous ${viewMode === "weekly" ? "Week" : "Month"}`}
               </button>
               <button
                 onClick={() => setWeekOffset(0)}
@@ -252,7 +266,9 @@ export function Dashboard({
                     : "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
                   }`}
               >
-                Bu {viewMode === "weekly" ? "Hafta" : "Ay"}
+                {isTr
+                  ? `Bu ${viewMode === "weekly" ? "Hafta" : "Ay"}`
+                  : `This ${viewMode === "weekly" ? "Week" : "Month"}`}
               </button>
               <button
                 onClick={() => weekOffset > 0 && setWeekOffset(weekOffset - 1)}
@@ -260,7 +276,10 @@ export function Dashboard({
                 className={`px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md cursor-pointer text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${weekOffset === 0 ? "opacity-50 cursor-not-allowed" : ""
                   }`}
               >
-                Sonraki {viewMode === "weekly" ? "Hafta" : "Ay"} &gt;
+                {isTr
+                  ? `Sonraki ${viewMode === "weekly" ? "Hafta" : "Ay"}`
+                  : `Next ${viewMode === "weekly" ? "Week" : "Month"}`}{" "}
+                &gt;
               </button>
             </div>
 
@@ -325,20 +344,22 @@ export function Dashboard({
               <Activity size={12} />
               {jiraStatus === "connected" && (
                 <>
-                  Veri kaynağı:{" "}
+                  {isTr ? "Veri kaynağı: " : "Data source: "}
                   <strong className="text-green-600 dark:text-green-400">
-                    Jira (Bağlı)
+                    {isTr ? "Jira (Bağlı)" : "Jira (Connected)"}
                   </strong>
                 </>
               )}
               {jiraStatus !== "connected" && (
                 <>
-                  Veri kaynağı:{" "}
+                  {isTr ? "Veri kaynağı: " : "Data source: "}
                   <strong className="text-yellow-600 dark:text-yellow-500">
-                    Mock (Örnek)
+                    {isTr ? "Mock (Örnek)" : "Mock (Sample)"}
                   </strong>{" "}
-                  • Jira entegrasyonu tamamlandığında gerçek veriler
-                  gösterilecek.
+                  •{" "}
+                  {isTr
+                    ? "Jira entegrasyonu tamamlandığında gerçek veriler gösterilecek."
+                    : "Real data will be shown once Jira integration is completed."}
                 </>
               )}
             </p>
@@ -354,21 +375,100 @@ export function Dashboard({
                 : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
               }`}
           >
-            <Bell size={18} /> Manuel Kontrol Et
+            <Bell size={18} />{" "}
+            {isTr ? "Manuel Kontrol Et" : "Check Manually"}
           </button>
+        </div>
+
+        <div className="mt-6 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-slate-900 dark:text-slate-100 font-bold text-sm uppercase tracking-wider">
+              {isTr ? "Üzerimdeki Ticket'lar" : "Tickets Assigned to Me"}
+            </h3>
+            {isAssignedIssuesLoading && (
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <Loader2 size={14} className="animate-spin" />{" "}
+                {isTr ? "Yükleniyor..." : "Loading..."}
+              </span>
+            )}
+          </div>
+          {assignedIssues.length === 0 && !isAssignedIssuesLoading && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isTr
+                ? "Üzerinde açık ticket bulunmuyor."
+                : "No open tickets assigned to you."}
+            </p>
+          )}
+          {assignedIssues.length > 0 && (
+            <div className="max-h-64 overflow-y-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+                    <th className="p-2 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[55%]">
+                      Issue
+                    </th>
+                    <th className="p-2 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[45%]">
+                      {isTr ? "Durum" : "Status"}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {assignedIssues.map((issue) => (
+                    <tr
+                      key={issue.key}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="p-2 align-top">
+                        <a
+                          href="#"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const domain =
+                              accounts
+                                .find((a) => a.id === activeAccountId)
+                                ?.domain.replace(/\/+$/, "") || "";
+                            if (domain) {
+                              await open(`${domain}/browse/${issue.key}`);
+                            }
+                          }}
+                          className="text-blue-600 dark:text-blue-400 font-medium no-underline hover:underline cursor-pointer"
+                        >
+                          {issue.key}
+                        </a>
+                        {issue.summary && (
+                          <div
+                            className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={issue.summary}
+                          >
+                            {issue.summary}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-2 align-top">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {issue.statusName || "-"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {lastJql && (
           <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-900 rounded-md text-xs text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 font-mono">
             <div className="font-bold mb-2 text-slate-900 dark:text-slate-100">
-              Debug Info (JQL):
+              {isTr ? "Debug Bilgisi (JQL):" : "Debug Info (JQL):"}
             </div>
             <code className="block mb-2 break-all bg-white dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800">
               {lastJql}
             </code>
             <div className="text-[10px] text-slate-500 dark:text-slate-500 font-sans">
-              Bu sorguyu Jira'da "Advanced Issue Search" ekranına yapıştırarak
-              verileri kontrol edebilirsin.
+              {isTr
+                ? 'Bu sorguyu Jira\'da "Advanced Issue Search" ekranına yapıştırarak verileri kontrol edebilirsin.'
+                : 'You can paste this query into Jira "Advanced Issue Search" to verify the data.'}
             </div>
           </div>
         )}
@@ -376,7 +476,9 @@ export function Dashboard({
         {rawWorklogs.length > 0 && (
           <div className="mt-6 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
             <h3 className="text-slate-900 dark:text-slate-100 mb-4 font-bold text-sm uppercase tracking-wider">
-              Detaylı Veri ({rawWorklogs.length} Kayıt)
+              {isTr
+                ? `Detaylı Veri (${rawWorklogs.length} Kayıt)`
+                : `Detailed Data (${rawWorklogs.length} Rows)`}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm table-fixed">
@@ -386,13 +488,13 @@ export function Dashboard({
                       Issue
                     </th>
                     <th className="p-3 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[25%]">
-                      Tarih
+                      {isTr ? "Tarih" : "Date"}
                     </th>
                     <th className="p-3 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[15%] text-right">
-                      Süre (Saat)
+                      {isTr ? "Süre (Saat)" : "Duration (Hours)"}
                     </th>
                     <th className="p-3 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[15%]">
-                      Açıklama
+                      {isTr ? "Açıklama" : "Description"}
                     </th>
                   </tr>
                 </thead>

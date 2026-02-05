@@ -6,3 +6,11 @@ export interface JiraAccount {
   // If we want to keep it in memory for the session:
   token?: string;
 }
+
+export interface JiraIssueOption {
+  key: string;
+  summary: string;
+  statusName?: string;
+}
+
+export type LanguageCode = "tr" | "en";

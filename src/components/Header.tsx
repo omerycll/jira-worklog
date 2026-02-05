@@ -1,5 +1,5 @@
 import { Play, Square, Moon, Sun, Settings, Activity } from "lucide-react";
-import { JiraAccount } from "../types";
+import { JiraAccount, LanguageCode } from "../types";
 
 interface HeaderProps {
   accounts: JiraAccount[];
@@ -14,6 +14,7 @@ interface HeaderProps {
   toggleTheme: () => void;
   currentPage: "dashboard" | "settings";
   setCurrentPage: (page: "dashboard" | "settings") => void;
+  language: LanguageCode;
 }
 
 export function Header({
@@ -29,7 +30,9 @@ export function Header({
   toggleTheme,
   currentPage,
   setCurrentPage,
+  language,
 }: HeaderProps) {
+  const isTr = language === "tr";
   return (
     <header className="flex justify-between items-start mb-8 flex-wrap gap-3">
       <div className="flex flex-col gap-3 min-w-[220px]">
@@ -44,7 +47,7 @@ export function Header({
                 : "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-blue-600 hover:border-blue-300"
               }`}
           >
-            <Activity size={14} /> Dashboard
+            <Activity size={14} /> {isTr ? "Gösterge Paneli" : "Dashboard"}
           </button>
           <button
             onClick={() => setCurrentPage("settings")}
@@ -53,7 +56,7 @@ export function Header({
                 : "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-blue-600 hover:border-blue-300"
               }`}
           >
-            <Settings size={14} /> Settings
+            <Settings size={14} /> {isTr ? "Ayarlar" : "Settings"}
           </button>
         </div>
       </div>
@@ -90,7 +93,15 @@ export function Header({
             onClick={isTimerRunning ? stopTimer : startTimer}
             className={`bg-transparent border-none cursor-pointer flex items-center p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${isTimerRunning ? "text-red-500" : "text-blue-600 dark:text-blue-400"
               }`}
-            title={isTimerRunning ? "Durdur" : "Başlat"}
+            title={
+              isTimerRunning
+                ? isTr
+                  ? "Durdur"
+                  : "Stop"
+                : isTr
+                ? "Başlat"
+                : "Start"
+            }
           >
             {isTimerRunning ? (
               <Square size={16} fill="currentColor" />

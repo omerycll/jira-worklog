@@ -10,7 +10,7 @@ import { Header } from "./components/Header";
 import { TimerModal } from "./components/TimerModal";
 import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
-import { JiraAccount } from "./types";
+import { JiraAccount, JiraIssueOption, LanguageCode } from "./types";
 
 function App() {
   const [activeAccountId, setActiveAccountId] = useState<string>("");
@@ -21,6 +21,7 @@ function App() {
   const [monthlyHours, setMonthlyHours] = useState(0);
   const [jiraStatus, setJiraStatus] = useState<"connected" | "mock">("mock");
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [language, setLanguage] = useState<LanguageCode>("tr");
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationTime, setNotificationTime] = useState("17:00");
   const [isAutoStartEnabled, setIsAutoStartEnabled] = useState(false);
@@ -34,6 +35,7 @@ function App() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [timerIssueKey, setTimerIssueKey] = useState("");
   const [timerDescription, setTimerDescription] = useState("");
+  const [timerHoursOverride, setTimerHoursOverride] = useState<string>("");
   const timerIntervalRef = useRef<number | null>(null);
 
   // Dashboard Data State
@@ -41,6 +43,8 @@ function App() {
   const [rawWorklogs, setRawWorklogs] = useState<any[]>([]);
   const [lastJql, setLastJql] = useState("");
   const [isWorklogLoading, setIsWorklogLoading] = useState(false);
+  const [assignedIssues, setAssignedIssues] = useState<JiraIssueOption[]>([]);
+  const [isAssignedIssuesLoading, setIsAssignedIssuesLoading] = useState(false);
 
   // View Mode
   const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly");
@@ -56,6 +60,12 @@ function App() {
     } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       setTheme("dark");
       document.documentElement.classList.add("dark");
+    }
+
+    // Language
+    const savedLanguage = localStorage.getItem("language") as LanguageCode | null;
+    if (savedLanguage === "tr" || savedLanguage === "en") {
+      setLanguage(savedLanguage);
     }
 
     // Settings
@@ -93,6 +103,7 @@ function App() {
     if (activeAccountId) {
       localStorage.setItem("active_account_id", activeAccountId);
       checkWorklogs(); // Refresh data when account changes
+      loadAssignedIssues(); // Refresh assigned issues when account changes
     }
   }, [activeAccountId]);
 
@@ -146,6 +157,11 @@ function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  };
+
+  const changeLanguage = (lang: LanguageCode) => {
+    setLanguage(lang);
+    localStorage.setItem("language", lang);
   };
 
   const addAccount = async (email: string, domain: string, token: string) => {
@@ -422,6 +438,9 @@ function App() {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+    const hours = elapsedSeconds / 3600;
+    setTimerHoursOverride(hours > 0 ? hours.toFixed(2) : "0.00");
+    loadAssignedIssues();
     setShowSaveModal(true);
   };
 
@@ -431,11 +450,16 @@ function App() {
     setStartTime(null);
     setTimerIssueKey("");
     setTimerDescription("");
+    setTimerHoursOverride("");
   };
 
   const saveTimerWorklog = async () => {
     if (!activeAccountId || !timerIssueKey) {
-      alert("Lütfen bir hesap seçin ve Issue Key girin.");
+      alert(
+        language === "tr"
+          ? "Lütfen bir hesap seçin ve Issue Key girin."
+          : "Please select an account and enter an Issue Key."
+      );
       return;
     }
 
@@ -444,8 +468,18 @@ function App() {
 
     const apiToken = await getSecureToken(account.email);
     if (!apiToken) {
-      alert("API Token bulunamadı.");
+      alert(language === "tr" ? "API Token bulunamadı." : "API token not found.");
       return;
+    }
+
+    // Timer süresini kullanmadan önce, varsa manuel saat override'ını uygula
+    let timeToUseSeconds = elapsedSeconds;
+    if (timerHoursOverride.trim() !== "") {
+      const normalized = timerHoursOverride.replace(",", ".");
+      const parsed = parseFloat(normalized);
+      if (!isNaN(parsed) && parsed > 0) {
+        timeToUseSeconds = Math.round(parsed * 3600);
+      }
     }
 
     setIsWorklogLoading(true);
@@ -457,7 +491,7 @@ function App() {
       const startedIso = now.toISOString().replace("Z", "+0000");
 
       const body = {
-        timeSpentSeconds: elapsedSeconds,
+        timeSpentSeconds: timeToUseSeconds,
         comment: {
           type: "doc",
           version: 1,
@@ -487,12 +521,20 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Log kaydı başarısız: " + response.status);
+        throw new Error(
+          (language === "tr" ? "Log kaydı başarısız: " : "Worklog save failed: ") +
+            response.status
+        );
       }
 
+      const displayTime = formatElapsedTime(timeToUseSeconds);
+
       await invoke("send_jira_notification", {
-        title: "Efor Kaydedildi",
-        body: `${timerIssueKey} için ${formatElapsedTime(elapsedSeconds)} efor girildi.`,
+        title: language === "tr" ? "Efor Kaydedildi" : "Worklog Saved",
+        body:
+          language === "tr"
+            ? `${timerIssueKey} için ${displayTime} efor girildi.`
+            : `${displayTime} logged for ${timerIssueKey}.`,
       });
 
       discardTimer();
@@ -500,9 +542,76 @@ function App() {
 
     } catch (err) {
       console.error(err);
-      alert("Hata oluştu: " + err);
+      alert(
+        (language === "tr" ? "Hata oluştu: " : "An error occurred: ") + String(err)
+      );
     } finally {
       setIsWorklogLoading(false);
+    }
+  };
+
+  const loadAssignedIssues = async () => {
+    if (!activeAccountId) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    const account = accounts.find((a) => a.id === activeAccountId);
+    if (!account) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    const apiToken = await getSecureToken(account.email);
+    if (!apiToken) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    setIsAssignedIssuesLoading(true);
+    try {
+      const cleanDomain = account.domain.replace(/\/+$/, "");
+      const searchUrl = `${cleanDomain}/rest/api/3/search/jql`;
+
+      const jql =
+        'assignee IN (currentUser()) AND status NOT IN (Done, Resolved) ' +
+        'ORDER BY created DESC, lastViewed ASC';
+
+      const response = await fetch(searchUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${account.email}:${apiToken}`)}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jql,
+          fields: ["summary", "status"],
+          maxResults: 100,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Assigned issues fetch failed:", response.status);
+        setAssignedIssues([]);
+        return;
+      }
+
+      const data: any = await response.json();
+      const issues = (data.issues ?? []) as any[];
+
+      const mapped: JiraIssueOption[] = issues.map((issue) => ({
+        key: issue.key,
+        summary: issue.fields?.summary ?? "",
+        statusName: issue.fields?.status?.name ?? "",
+      }));
+
+      setAssignedIssues(mapped);
+    } catch (err) {
+      console.error("Failed to load assigned issues:", err);
+      setAssignedIssues([]);
+    } finally {
+      setIsAssignedIssuesLoading(false);
     }
   };
 
@@ -521,12 +630,18 @@ function App() {
       const update = await checkUpdate();
 
       if (!update) {
-        alert("Şu anda yüklü sürüm en güncel sürüm.");
+        alert(
+          language === "tr"
+            ? "Şu anda yüklü sürüm en güncel sürüm."
+            : "The currently installed version is up to date."
+        );
         return;
       }
 
       const confirmInstall = confirm(
-        `Yeni bir sürüm bulundu: ${update.version} (mevcut: ${update.currentVersion}).\n\nŞimdi indirip kurmak ister misin?`
+        language === "tr"
+          ? `Yeni bir sürüm bulundu: ${update.version} (mevcut: ${update.currentVersion}).\n\nŞimdi indirip kurmak ister misin?`
+          : `A new version was found: ${update.version} (current: ${update.currentVersion}).\n\nDo you want to download and install it now?`
       );
       if (!confirmInstall) {
         await update.close();
@@ -543,11 +658,19 @@ function App() {
         }
       });
 
-      alert("Güncelleme indirildi. Uygulama yeniden başlatıldıktan sonra yeni sürüm kullanılacak.");
+      alert(
+        language === "tr"
+          ? "Güncelleme indirildi. Uygulama yeniden başlatıldıktan sonra yeni sürüm kullanılacak."
+          : "Update downloaded. The new version will be used after restarting the application."
+      );
       await update.close();
     } catch (err) {
       console.error("[Updater] Güncelleme kontrolü hata:", err);
-      alert("Güncelleme kontrolü sırasında bir hata oluştu. Detaylar için konsolu kontrol edin.");
+      alert(
+        language === "tr"
+          ? "Güncelleme kontrolü sırasında bir hata oluştu. Detaylar için konsolu kontrol edin."
+          : "An error occurred while checking for updates. See console for details."
+      );
     } finally {
       setIsCheckingUpdate(false);
     }
@@ -568,6 +691,7 @@ function App() {
         toggleTheme={toggleTheme}
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
+        language={language}
       />
 
       {currentPage === "dashboard" && (
@@ -588,6 +712,9 @@ function App() {
           lastJql={lastJql}
           checkWorklogs={checkWorklogs}
           theme={theme}
+          assignedIssues={assignedIssues}
+          isAssignedIssuesLoading={isAssignedIssuesLoading}
+          language={language}
         />
       )}
 
@@ -611,6 +738,8 @@ function App() {
           toggleAutoStart={toggleAutoStart}
           isCheckingUpdate={isCheckingUpdate}
           onCheckUpdates={handleCheckUpdates}
+          language={language}
+          setLanguage={changeLanguage}
         />
       )}
 
@@ -624,6 +753,11 @@ function App() {
           setTimerDescription={setTimerDescription}
           onSave={saveTimerWorklog}
           onDiscard={discardTimer}
+          availableIssues={assignedIssues}
+          isIssuesLoading={isAssignedIssuesLoading}
+          effortHours={timerHoursOverride}
+          setEffortHours={setTimerHoursOverride}
+          language={language}
         />
       )}
     </div>
