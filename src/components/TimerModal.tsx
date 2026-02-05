@@ -12,7 +12,7 @@ interface TimerModalProps {
   onDiscard: () => void;
   availableIssues: JiraIssueOption[];
   isIssuesLoading: boolean;
-   // Timer'ın ölçtüğünden bağımsız olarak, Jira'ya kaç saat yazılacağını kontrol eder
+  // Timer'ın ölçtüğünden bağımsız olarak, Jira'ya kaç saat yazılacağını kontrol eder
   effortHours: string;
   setEffortHours: (v: string) => void;
   language: LanguageCode;
@@ -31,6 +31,7 @@ export function TimerModal({
   isIssuesLoading,
   effortHours,
   setEffortHours,
+  language,
 }: TimerModalProps) {
   const isTr = language === "tr";
   const displaySeconds = (() => {
