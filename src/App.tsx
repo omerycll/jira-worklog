@@ -534,12 +534,13 @@ function App() {
       }
 
       await update.downloadAndInstall((event) => {
-        if (event.type === "Progress") {
+        // event: { event: "Started" | "Progress" | "Finished", data?: { contentLength?, chunkLength? } }
+        if (event.event === "Progress" && event.data) {
           console.log(
             "[Updater] İndirme ilerlemesi:",
-            event.chunkLength,
+            event.data.chunkLength,
             "/",
-            event.contentLength
+            event.data.contentLength
           );
         }
       });
