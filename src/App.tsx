@@ -102,10 +102,16 @@ function App() {
   useEffect(() => {
     if (activeAccountId) {
       localStorage.setItem("active_account_id", activeAccountId);
-      checkWorklogs(); // Refresh data when account changes
       loadAssignedIssues(); // Refresh assigned issues when account changes
     }
   }, [activeAccountId]);
+
+  // 2.b Refresh worklogs when account or view range changes
+  useEffect(() => {
+    if (!activeAccountId) return;
+    checkWorklogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, viewMode, weekOffset]);
 
   // 3. Timer Logic
   useEffect(() => {
