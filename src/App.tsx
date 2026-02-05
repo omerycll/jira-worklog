@@ -537,10 +537,8 @@ function App() {
         // event: { event: "Started" | "Progress" | "Finished", data?: { contentLength?, chunkLength? } }
         if (event.event === "Progress" && event.data) {
           console.log(
-            "[Updater] İndirme ilerlemesi:",
-            event.data.chunkLength,
-            "/",
-            event.data.contentLength
+            "[Updater] İndirme ilerlemesi (chunk):",
+            event.data.chunkLength
           );
         }
       });
