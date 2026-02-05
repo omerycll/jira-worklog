@@ -1,4 +1,5 @@
 import { Save, X } from "lucide-react";
+import type { JiraIssueOption } from "../types";
 
 interface TimerModalProps {
   elapsedSeconds: number;
@@ -9,6 +10,11 @@ interface TimerModalProps {
   setTimerDescription: (desc: string) => void;
   onSave: () => void;
   onDiscard: () => void;
+  availableIssues: JiraIssueOption[];
+  isIssuesLoading: boolean;
+   // Timer'ın ölçtüğünden bağımsız olarak, Jira'ya kaç saat yazılacağını kontrol eder
+  effortHours: string;
+  setEffortHours: (v: string) => void;
 }
 
 export function TimerModal({
@@ -20,7 +26,23 @@ export function TimerModal({
   setTimerDescription,
   onSave,
   onDiscard,
+  availableIssues,
+  isIssuesLoading,
+  effortHours,
+  setEffortHours,
 }: TimerModalProps) {
+  const displaySeconds = (() => {
+    const trimmed = effortHours.trim();
+    if (trimmed !== "") {
+      const normalized = trimmed.replace(",", ".");
+      const parsed = parseFloat(normalized);
+      if (!isNaN(parsed) && parsed >= 0) {
+        return Math.round(parsed * 3600);
+      }
+    }
+    return elapsedSeconds;
+  })();
+
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center z-[1000] p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl w-full max-w-[400px] shadow-2xl border border-slate-200 dark:border-slate-700 transform scale-100 transition-all">
@@ -38,7 +60,7 @@ export function TimerModal({
 
         <div className="mb-6 text-center bg-slate-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-100 dark:border-slate-800">
           <div className="text-4xl font-bold font-mono text-blue-600 dark:text-blue-400 tracking-wider">
-            {formatElapsedTime(elapsedSeconds)}
+            {formatElapsedTime(displaySeconds)}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest font-semibold">
             Geçen Süre
@@ -56,6 +78,57 @@ export function TimerModal({
             placeholder="Örn: SHL-123"
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
+        </div>
+
+        <div className="mb-4">
+          <label className="block mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
+            Efor Süresi (saat)
+          </label>
+          <input
+            type="number"
+            step="0.25"
+            min="0"
+            value={effortHours}
+            onChange={(e) => setEffortHours(e.target.value)}
+            className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+          />
+          <p className="mt-1 text-[11px] text-slate-400">
+            Timer süresi otomatik gelir, istersen burada saat olarak güncelleyebilirsin. Örn: 0.5, 1.25
+          </p>
+        </div>
+
+        <div className="mb-4">
+          <label className="block mb-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">
+            Bana Atanmış Issue&apos;lar
+          </label>
+          <select
+            value={
+              availableIssues.some((i) => i.key === timerIssueKey)
+                ? timerIssueKey
+                : ""
+            }
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                setTimerIssueKey(value);
+              }
+            }}
+            className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          >
+            <option value="">
+              Listeden seçebilir veya yukarıya elle yazabilirsiniz
+            </option>
+            {availableIssues.map((issue) => (
+              <option key={issue.key} value={issue.key}>
+                {issue.key} - {issue.summary}
+              </option>
+            ))}
+          </select>
+          {isIssuesLoading && (
+            <p className="mt-1 text-xs text-slate-400">
+              Sana atanmış issue&apos;lar yükleniyor...
+            </p>
+          )}
         </div>
 
         <div className="mb-6">

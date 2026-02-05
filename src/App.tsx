@@ -10,7 +10,7 @@ import { Header } from "./components/Header";
 import { TimerModal } from "./components/TimerModal";
 import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
-import { JiraAccount } from "./types";
+import { JiraAccount, JiraIssueOption } from "./types";
 
 function App() {
   const [activeAccountId, setActiveAccountId] = useState<string>("");
@@ -34,6 +34,7 @@ function App() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [timerIssueKey, setTimerIssueKey] = useState("");
   const [timerDescription, setTimerDescription] = useState("");
+  const [timerHoursOverride, setTimerHoursOverride] = useState<string>("");
   const timerIntervalRef = useRef<number | null>(null);
 
   // Dashboard Data State
@@ -41,6 +42,8 @@ function App() {
   const [rawWorklogs, setRawWorklogs] = useState<any[]>([]);
   const [lastJql, setLastJql] = useState("");
   const [isWorklogLoading, setIsWorklogLoading] = useState(false);
+  const [assignedIssues, setAssignedIssues] = useState<JiraIssueOption[]>([]);
+  const [isAssignedIssuesLoading, setIsAssignedIssuesLoading] = useState(false);
 
   // View Mode
   const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly");
@@ -93,6 +96,7 @@ function App() {
     if (activeAccountId) {
       localStorage.setItem("active_account_id", activeAccountId);
       checkWorklogs(); // Refresh data when account changes
+      loadAssignedIssues(); // Refresh assigned issues when account changes
     }
   }, [activeAccountId]);
 
@@ -422,6 +426,9 @@ function App() {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
+    const hours = elapsedSeconds / 3600;
+    setTimerHoursOverride(hours > 0 ? hours.toFixed(2) : "0.00");
+    loadAssignedIssues();
     setShowSaveModal(true);
   };
 
@@ -431,6 +438,7 @@ function App() {
     setStartTime(null);
     setTimerIssueKey("");
     setTimerDescription("");
+    setTimerHoursOverride("");
   };
 
   const saveTimerWorklog = async () => {
@@ -448,6 +456,16 @@ function App() {
       return;
     }
 
+    // Timer süresini kullanmadan önce, varsa manuel saat override'ını uygula
+    let timeToUseSeconds = elapsedSeconds;
+    if (timerHoursOverride.trim() !== "") {
+      const normalized = timerHoursOverride.replace(",", ".");
+      const parsed = parseFloat(normalized);
+      if (!isNaN(parsed) && parsed > 0) {
+        timeToUseSeconds = Math.round(parsed * 3600);
+      }
+    }
+
     setIsWorklogLoading(true);
     try {
       const cleanDomain = account.domain.replace(/\/+$/, "");
@@ -457,7 +475,7 @@ function App() {
       const startedIso = now.toISOString().replace("Z", "+0000");
 
       const body = {
-        timeSpentSeconds: elapsedSeconds,
+        timeSpentSeconds: timeToUseSeconds,
         comment: {
           type: "doc",
           version: 1,
@@ -490,9 +508,11 @@ function App() {
         throw new Error("Log kaydı başarısız: " + response.status);
       }
 
+      const displayTime = formatElapsedTime(timeToUseSeconds);
+
       await invoke("send_jira_notification", {
         title: "Efor Kaydedildi",
-        body: `${timerIssueKey} için ${formatElapsedTime(elapsedSeconds)} efor girildi.`,
+        body: `${timerIssueKey} için ${displayTime} efor girildi.`,
       });
 
       discardTimer();
@@ -503,6 +523,71 @@ function App() {
       alert("Hata oluştu: " + err);
     } finally {
       setIsWorklogLoading(false);
+    }
+  };
+
+  const loadAssignedIssues = async () => {
+    if (!activeAccountId) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    const account = accounts.find((a) => a.id === activeAccountId);
+    if (!account) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    const apiToken = await getSecureToken(account.email);
+    if (!apiToken) {
+      setAssignedIssues([]);
+      return;
+    }
+
+    setIsAssignedIssuesLoading(true);
+    try {
+      const cleanDomain = account.domain.replace(/\/+$/, "");
+      const searchUrl = `${cleanDomain}/rest/api/3/search/jql`;
+
+      const jql =
+        'assignee IN (currentUser()) AND status NOT IN (Done, Resolved) ' +
+        'ORDER BY created DESC, lastViewed ASC';
+
+      const response = await fetch(searchUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${account.email}:${apiToken}`)}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jql,
+          fields: ["summary", "status"],
+          maxResults: 100,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Assigned issues fetch failed:", response.status);
+        setAssignedIssues([]);
+        return;
+      }
+
+      const data: any = await response.json();
+      const issues = (data.issues ?? []) as any[];
+
+      const mapped: JiraIssueOption[] = issues.map((issue) => ({
+        key: issue.key,
+        summary: issue.fields?.summary ?? "",
+        statusName: issue.fields?.status?.name ?? "",
+      }));
+
+      setAssignedIssues(mapped);
+    } catch (err) {
+      console.error("Failed to load assigned issues:", err);
+      setAssignedIssues([]);
+    } finally {
+      setIsAssignedIssuesLoading(false);
     }
   };
 
@@ -588,6 +673,8 @@ function App() {
           lastJql={lastJql}
           checkWorklogs={checkWorklogs}
           theme={theme}
+          assignedIssues={assignedIssues}
+          isAssignedIssuesLoading={isAssignedIssuesLoading}
         />
       )}
 
@@ -624,6 +711,10 @@ function App() {
           setTimerDescription={setTimerDescription}
           onSave={saveTimerWorklog}
           onDiscard={discardTimer}
+          availableIssues={assignedIssues}
+          isIssuesLoading={isAssignedIssuesLoading}
+          effortHours={timerHoursOverride}
+          setEffortHours={setTimerHoursOverride}
         />
       )}
     </div>

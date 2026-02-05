@@ -16,7 +16,7 @@ import {
   Pie,
   Legend,
 } from "recharts";
-import { JiraAccount } from "../types";
+import { JiraAccount, JiraIssueOption } from "../types";
 import { open } from "@tauri-apps/plugin-shell";
 
 interface DashboardProps {
@@ -36,6 +36,8 @@ interface DashboardProps {
   lastJql: string;
   checkWorklogs: () => void;
   theme: string;
+  assignedIssues: JiraIssueOption[];
+  isAssignedIssuesLoading: boolean;
 }
 
 export function Dashboard({
@@ -55,6 +57,8 @@ export function Dashboard({
   lastJql,
   checkWorklogs,
   theme,
+  assignedIssues,
+  isAssignedIssuesLoading,
 }: DashboardProps) {
   return (
     <>
@@ -356,6 +360,80 @@ export function Dashboard({
           >
             <Bell size={18} /> Manuel Kontrol Et
           </button>
+        </div>
+
+        <div className="mt-6 bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-slate-900 dark:text-slate-100 font-bold text-sm uppercase tracking-wider">
+              Üzerimdeki Ticket&apos;lar
+            </h3>
+            {isAssignedIssuesLoading && (
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <Loader2 size={14} className="animate-spin" /> Yükleniyor...
+              </span>
+            )}
+          </div>
+          {assignedIssues.length === 0 && !isAssignedIssuesLoading && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Üzerinde açık ticket bulunmuyor.
+            </p>
+          )}
+          {assignedIssues.length > 0 && (
+            <div className="max-h-64 overflow-y-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+                    <th className="p-2 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[55%]">
+                      Issue
+                    </th>
+                    <th className="p-2 font-semibold text-slate-500 dark:text-slate-400 uppercase text-xs w-[45%]">
+                      Durum
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {assignedIssues.map((issue) => (
+                    <tr
+                      key={issue.key}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      <td className="p-2 align-top">
+                        <a
+                          href="#"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            const domain =
+                              accounts
+                                .find((a) => a.id === activeAccountId)
+                                ?.domain.replace(/\/+$/, "") || "";
+                            if (domain) {
+                              await open(`${domain}/browse/${issue.key}`);
+                            }
+                          }}
+                          className="text-blue-600 dark:text-blue-400 font-medium no-underline hover:underline cursor-pointer"
+                        >
+                          {issue.key}
+                        </a>
+                        {issue.summary && (
+                          <div
+                            className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={issue.summary}
+                          >
+                            {issue.summary}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-2 align-top">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {issue.statusName || "-"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {lastJql && (
