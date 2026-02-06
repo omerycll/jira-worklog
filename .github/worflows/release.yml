@@ -37,6 +37,6 @@ jobs:
         with:
           projectPath: .
           tagName: ${{ github.ref_name }}          # v0.2.0
-          releaseName: "XTime ${{ github.ref_name }}"
+          releaseName: "JiraTracker ${{ github.ref_name }}"
           releaseDraft: false
           prerelease: false
