@@ -28,16 +28,6 @@ fn delete_token(service: String, user: String) -> Result<(), String> {
     entry.delete_password().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-fn open_devtools(window: tauri::WebviewWindow) {
-    // Sadece debug derlemelerde devtools açmak istersen:
-    // #[cfg(debug_assertions)]
-    // {
-    //     window.open_devtools();
-    // }
-    window.open_devtools();
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -106,8 +96,7 @@ pub fn run() {
             send_jira_notification,
             save_token,
             get_token,
-            delete_token,
-            open_devtools
+            delete_token
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
