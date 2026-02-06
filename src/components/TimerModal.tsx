@@ -16,6 +16,7 @@ interface TimerModalProps {
   effortHours: string;
   setEffortHours: (v: string) => void;
   language: LanguageCode;
+  logTemplates: string[];
 }
 
 export function TimerModal({
@@ -32,6 +33,7 @@ export function TimerModal({
   effortHours,
   setEffortHours,
   language,
+  logTemplates,
 }: TimerModalProps) {
   const isTr = language === "tr";
   const displaySeconds = (() => {
@@ -153,6 +155,20 @@ export function TimerModal({
             rows={3}
             className="w-full p-2.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
           />
+          {logTemplates.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {logTemplates.map((tpl) => (
+                <button
+                  key={tpl}
+                  type="button"
+                  onClick={() => setTimerDescription(tpl)}
+                  className="px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-[11px] text-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  {tpl}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">

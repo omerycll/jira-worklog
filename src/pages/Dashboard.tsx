@@ -39,6 +39,7 @@ interface DashboardProps {
   assignedIssues: JiraIssueOption[];
   isAssignedIssuesLoading: boolean;
   language: LanguageCode;
+  privacyMode: boolean;
 }
 
 export function Dashboard({
@@ -61,6 +62,7 @@ export function Dashboard({
   assignedIssues,
   isAssignedIssuesLoading,
   language,
+  privacyMode,
 }: DashboardProps) {
   const isTr = language === "tr";
   return (
@@ -433,9 +435,9 @@ export function Dashboard({
                           }}
                           className="text-blue-600 dark:text-blue-400 font-medium no-underline hover:underline cursor-pointer"
                         >
-                          {issue.key}
+                          {privacyMode ? "••••" : issue.key}
                         </a>
-                        {issue.summary && (
+                        {issue.summary && !privacyMode && (
                           <div
                             className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] whitespace-nowrap overflow-hidden text-ellipsis"
                             title={issue.summary}
@@ -457,7 +459,7 @@ export function Dashboard({
           )}
         </div>
 
-        {lastJql && (
+        {lastJql && !privacyMode && (
           <div className="mt-6 p-4 bg-slate-100 dark:bg-slate-900 rounded-md text-xs text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 font-mono">
             <div className="font-bold mb-2 text-slate-900 dark:text-slate-100">
               {isTr ? "Debug Bilgisi (JQL):" : "Debug Info (JQL):"}
@@ -519,14 +521,16 @@ export function Dashboard({
                           }}
                           className="text-blue-600 dark:text-blue-400 font-medium no-underline hover:underline cursor-pointer"
                         >
-                          {log.issueKey || "-"}
+                          {privacyMode ? "••••" : log.issueKey || "-"}
                         </a>
-                        <div
-                          className="text-xs text-slate-500 dark:text-slate-400 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis"
-                          title={log.issueSummary}
-                        >
-                          {log.issueSummary}
-                        </div>
+                        {!privacyMode && (
+                          <div
+                            className="text-xs text-slate-500 dark:text-slate-400 max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis"
+                            title={log.issueSummary}
+                          >
+                            {log.issueSummary}
+                          </div>
+                        )}
                       </td>
                       <td className="p-3 text-slate-700 dark:text-slate-300 whitespace-nowrap align-top">
                         {(() => {
@@ -550,10 +554,12 @@ export function Dashboard({
                         {(log.timeSpentSeconds / 3600).toFixed(2)}
                       </td>
                       <td className="p-3 text-slate-600 dark:text-slate-400 max-w-[160px] whitespace-nowrap overflow-hidden text-ellipsis text-xs align-top">
-                        {/* @ts-ignore */}
-                        {log.comment?.content?.[0]?.content?.[0]?.text ||
-                          log.comment?.text ||
-                          "-"}
+                        {privacyMode
+                          ? "••••"
+                          : // @ts-ignore
+                            log.comment?.content?.[0]?.content?.[0]?.text ||
+                            log.comment?.text ||
+                            "-"}
                       </td>
                     </tr>
                   ))}

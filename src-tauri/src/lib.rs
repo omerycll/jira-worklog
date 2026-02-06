@@ -28,6 +28,16 @@ fn delete_token(service: String, user: String) -> Result<(), String> {
     entry.delete_password().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn open_devtools(window: tauri::WebviewWindow) {
+    // Sadece debug derlemelerde devtools açmak istersen:
+    // #[cfg(debug_assertions)]
+    // {
+    //     window.open_devtools();
+    // }
+    window.open_devtools();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -42,7 +52,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             use tauri::Manager;
-            use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+            use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
             use tauri::menu::{Menu, MenuItem};
 
             let show_i = MenuItem::with_id(app, "show", "Göster", true, None::<&str>)?;
@@ -67,11 +77,14 @@ pub fn run() {
                     }
                 })
                 .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click { .. } = event {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
+                    if let TrayIconEvent::Click { button, .. } = event {
+                        // Sadece sol tıkta pencereyi göster; sağ tık menüyü açsın
+                        if button == MouseButton::Left {
+                            let app = tray.app_handle();
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
                         }
                     }
                 })
@@ -93,7 +106,8 @@ pub fn run() {
             send_jira_notification,
             save_token,
             get_token,
-            delete_token
+            delete_token,
+            open_devtools
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

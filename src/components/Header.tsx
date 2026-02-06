@@ -15,6 +15,7 @@ interface HeaderProps {
   currentPage: "dashboard" | "settings";
   setCurrentPage: (page: "dashboard" | "settings") => void;
   language: LanguageCode;
+  privacyMode: boolean;
 }
 
 export function Header({
@@ -31,13 +32,14 @@ export function Header({
   currentPage,
   setCurrentPage,
   language,
+  privacyMode,
 }: HeaderProps) {
   const isTr = language === "tr";
   return (
     <header className="flex justify-between items-start mb-8 flex-wrap gap-3">
       <div className="flex flex-col gap-3 min-w-[220px]">
         <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 select-none">
-          XTime
+          JiraTracker
         </h2>
         <div className="flex items-center gap-2 w-fit">
           <button
@@ -69,7 +71,11 @@ export function Header({
           >
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.email}
+                {privacyMode
+                  ? `${isTr ? "Hesap" : "Account"} ${
+                      accounts.findIndex((acc) => acc.id === a.id) + 1
+                    }`
+                  : a.email}
               </option>
             ))}
           </select>

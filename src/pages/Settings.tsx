@@ -7,6 +7,8 @@ interface SettingsProps {
   addAccount: (email: string, domain: string, token: string) => Promise<void>;
   deleteAccount: (id: string) => void;
   activeAccountId: string;
+  clearCache: () => void;
+  hardResetData: () => void;
   notificationEnabled: boolean;
   setNotificationEnabled: (enabled: boolean) => void;
   notificationTime: string;
@@ -17,6 +19,11 @@ interface SettingsProps {
   onCheckUpdates: () => void;
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
+  privacyMode: boolean;
+  setPrivacyMode: (enabled: boolean) => void;
+  logTemplates: string[];
+  onAddLogTemplate: (template: string) => void;
+  onDeleteLogTemplate: (template: string) => void;
 }
 
 export function Settings({
@@ -24,6 +31,8 @@ export function Settings({
   addAccount,
   deleteAccount,
   activeAccountId,
+  clearCache,
+  hardResetData,
   notificationEnabled,
   setNotificationEnabled,
   notificationTime,
@@ -34,11 +43,17 @@ export function Settings({
   onCheckUpdates,
   language,
   setLanguage,
+  privacyMode,
+  setPrivacyMode,
+  logTemplates,
+  onAddLogTemplate,
+  onDeleteLogTemplate,
 }: SettingsProps) {
   const isTr = language === "tr";
   const [formEmail, setFormEmail] = useState("");
   const [formDomain, setFormDomain] = useState("");
   const [formToken, setFormToken] = useState("");
+  const [newTemplate, setNewTemplate] = useState("");
 
   const handleAddAccount = async () => {
     if (!formEmail || !formDomain || !formToken) return;
@@ -55,7 +70,7 @@ export function Settings({
         <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-4 font-bold text-lg">
           {isTr ? "Genel Ayarlar" : "General Settings"}
         </h3>
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
               {isTr ? "Dil" : "Language"}
@@ -69,6 +84,60 @@ export function Settings({
               <option value="en">English</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="privacyModeToggle"
+              checked={privacyMode}
+              onChange={(e) => setPrivacyMode(e.target.checked)}
+              className="w-4 h-4 cursor-pointer accent-blue-600 rounded"
+            />
+            <label
+              htmlFor="privacyModeToggle"
+              className="text-sm cursor-pointer text-slate-700 dark:text-slate-300 font-medium"
+            >
+              {isTr ? "Gizlilik Modu (Ekranda verileri gizle)" : "Privacy Mode (Hide data on screen)"}
+            </label>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 m-0">
+            {isTr
+              ? "Açıkken email, ticket özetleri ve açıklamalar sadeleştirilmiş olarak gösterilir. Ekran paylaşırken kullanışlıdır."
+              : "When enabled, emails, ticket summaries and descriptions are masked. Useful while screen sharing."}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 m-0 italic">
+            {isTr
+              ? "Geliştirici modu: Uygulama penceresi odaktayken Ctrl+Shift+D (macOS: Cmd+Shift+D) ile debug konsolunu açabilirsin."
+              : "Developer mode: With the app focused, press Ctrl+Shift+D (macOS: Cmd+Shift+D) to open the debug console."}
+          </p>
+        </div>
+      </div>
+
+      {/* Cache / Troubleshooting */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
+        <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-2 font-bold text-lg">
+          {isTr ? "Önbellek / Sorun Giderme" : "Cache / Troubleshooting"}
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 m-0 mb-3">
+          {isTr
+            ? "Aşağıdaki işlemler sadece bu uygulamanın önbelleğini ve ayarlarını etkiler."
+            : "Actions below only affect this application's cache and settings."}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <button
+            onClick={clearCache}
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-md border-none cursor-pointer text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Trash2 size={16} />{" "}
+            {isTr ? "Yumuşak Cache Temizle" : "Soft Clear Cache"}
+          </button>
+          <button
+            onClick={hardResetData}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md border-none cursor-pointer text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Trash2 size={16} />{" "}
+            {isTr ? "Tüm Veriyi Sıfırla" : "Hard Reset Data"}
+          </button>
         </div>
       </div>
 
@@ -130,10 +199,10 @@ export function Settings({
               >
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {acc.email}
+                    {privacyMode ? (isTr ? "Gizli Email" : "Hidden Email") : acc.email}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {acc.domain}
+                    {privacyMode ? (isTr ? "Gizli Alan Adı" : "Hidden Domain") : acc.domain}
                   </div>
                   {activeAccountId === acc.id && (
                     <span className="inline-block mt-1 text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium border border-blue-100 dark:border-blue-800">
@@ -153,6 +222,70 @@ export function Settings({
         )}
       </div>
 
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800">
+        <h3 className="text-slate-900 dark:text-slate-100 mt-0 mb-3 font-bold text-lg">
+          {isTr ? "Hızlı Log Şablonları" : "Quick Log Templates"}
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 m-0 mb-3">
+          {isTr
+            ? "Sık kullandığın açıklamaları kaydedip timer penceresinden tek tıkla kullanabilirsin."
+            : "Save frequently used descriptions and reuse them from the timer dialog with one click."}
+        </p>
+
+        {logTemplates.length === 0 ? (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {isTr
+              ? "Henüz şablon eklenmemiş. Aşağıdan yeni bir şablon oluşturabilirsin."
+              : "No templates added yet. Create a new template below."}
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {logTemplates.map((tpl) => (
+              <span
+                key={tpl}
+                className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200"
+              >
+                <span className="max-w-[220px] truncate">{tpl}</span>
+                <button
+                  type="button"
+                  onClick={() => onDeleteLogTemplate(tpl)}
+                  className="border-none bg-transparent text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer p-0.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  title={isTr ? "Şablonu sil" : "Delete template"}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2 mt-2">
+          <input
+            type="text"
+            value={newTemplate}
+            onChange={(e) => setNewTemplate(e.target.value)}
+            placeholder={
+              isTr
+                ? "Örn: Daily, Standup, Code Review..."
+                : "e.g. Daily, Standup, Code Review..."
+            }
+            className="flex-1 p-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const value = newTemplate.trim();
+              if (!value) return;
+              onAddLogTemplate(value);
+              setNewTemplate("");
+            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md border-none cursor-pointer text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
+          >
+            <Plus size={16} /> {isTr ? "Şablon Ekle" : "Add Template"}
+          </button>
+        </div>
+      </div>
+
       <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
         <h3 className="mt-0 text-slate-900 dark:text-slate-100 font-bold text-lg mb-3">
           {isTr ? "Jira API Key Nasıl Alınır?" : "How to Get a Jira API Token?"}
@@ -169,7 +302,7 @@ export function Settings({
               </li>
               <li>
                 <strong>Create API token</strong> butonuna tıkla ve token için
-                anlamlı bir isim ver (örneğin <em>XTime Desktop</em>).
+                anlamlı bir isim ver (örneğin <em>JiraTracker Desktop</em>).
               </li>
               <li>
                 Oluşturulan token&apos;ı kopyala. Bu ekranı kapattıktan sonra token
@@ -196,7 +329,7 @@ export function Settings({
               </li>
               <li>
                 Click <strong>Create API token</strong> and give it a meaningful
-                name (for example <em>XTime Desktop</em>).
+                name (for example <em>JiraTracker Desktop</em>).
               </li>
               <li>
                 Copy the generated token. It will not be shown again after closing
@@ -321,8 +454,8 @@ export function Settings({
         </h3>
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
           {isTr
-            ? "Yeni bir XTime sürümü varsa GitHub üzerinden indirip kurar. Güncelleme tamamlandıktan sonra uygulamayı yeniden başlatman gerekebilir."
-            : "If a new XTime version is available, it will be downloaded and installed from GitHub. You may need to restart the app after the update finishes."}
+            ? "Yeni bir JiraTracker sürümü varsa GitHub üzerinden indirip kurar. Güncelleme tamamlandıktan sonra uygulamayı yeniden başlatman gerekebilir."
+            : "If a new JiraTracker version is available, it will be downloaded and installed from GitHub. You may need to restart the app after the update finishes."}
         </p>
         <button
           onClick={onCheckUpdates}

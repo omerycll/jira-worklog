@@ -12,9 +12,13 @@ import { Dashboard } from "./pages/Dashboard";
 import { Settings } from "./pages/Settings";
 import { JiraAccount, JiraIssueOption, LanguageCode } from "./types";
 
+const DEFAULT_LOG_TEMPLATES: string[] = ["Daily", "Meeting", "Code Review"];
+
 function App() {
   const [activeAccountId, setActiveAccountId] = useState<string>("");
   const [accounts, setAccounts] = useState<JiraAccount[]>([]);
+  const [currentUserAccountIdByAccountId, setCurrentUserAccountIdByAccountId] =
+    useState<Record<string, string>>({});
 
   const [workHours, setWorkHours] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState(0);
@@ -45,6 +49,11 @@ function App() {
   const [isWorklogLoading, setIsWorklogLoading] = useState(false);
   const [assignedIssues, setAssignedIssues] = useState<JiraIssueOption[]>([]);
   const [isAssignedIssuesLoading, setIsAssignedIssuesLoading] = useState(false);
+  const reminderIntervalRef = useRef<number | null>(null);
+  const [lastReminderDate, setLastReminderDate] = useState<string | null>(null);
+
+  const [privacyMode, setPrivacyMode] = useState(false);
+  const [logTemplates, setLogTemplates] = useState<string[]>([]);
 
   // View Mode
   const [viewMode, setViewMode] = useState<"weekly" | "monthly">("weekly");
@@ -75,6 +84,40 @@ function App() {
     const notifTime = localStorage.getItem("notificationTime");
     if (notifTime) setNotificationTime(notifTime);
 
+    const lastReminder = localStorage.getItem("worklogReminderLastDate");
+    if (lastReminder) {
+      setLastReminderDate(lastReminder);
+    }
+
+    // Privacy mode
+    const privacy = localStorage.getItem("privacyMode");
+    if (privacy === "true") {
+      setPrivacyMode(true);
+    }
+
+    // Quick log templates
+    const templatesStr = localStorage.getItem("log_templates");
+    if (templatesStr) {
+      try {
+        const parsed = JSON.parse(templatesStr);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (t) => typeof t === "string" && t.trim() !== ""
+          );
+          setLogTemplates(
+            cleaned.length > 0 ? cleaned : DEFAULT_LOG_TEMPLATES
+          );
+        } else {
+          setLogTemplates(DEFAULT_LOG_TEMPLATES);
+        }
+      } catch (e) {
+        console.error("Failed to parse log templates", e);
+        setLogTemplates(DEFAULT_LOG_TEMPLATES);
+      }
+    } else {
+      setLogTemplates(DEFAULT_LOG_TEMPLATES);
+    }
+
     // Accounts
     const savedAccounts = localStorage.getItem("jira_accounts");
     if (savedAccounts) {
@@ -98,6 +141,22 @@ function App() {
     checkAutoStart();
   }, []);
 
+  // Global shortcut: Ctrl+Shift+D (veya Mac'te Cmd+Shift+D) ile devtools aç
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isModifier = e.ctrlKey || e.metaKey;
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        invoke("open_devtools").catch((err) => {
+          console.error("Failed to open devtools:", err);
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   // 2. Persist active account
   useEffect(() => {
     if (activeAccountId) {
@@ -112,6 +171,64 @@ function App() {
     checkWorklogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAccountId, viewMode, weekOffset]);
+
+  // 2.c Daily reminder for incomplete 8h
+  useEffect(() => {
+    // Clear any existing interval first
+    if (reminderIntervalRef.current) {
+      clearInterval(reminderIntervalRef.current);
+      reminderIntervalRef.current = null;
+    }
+
+    if (!notificationEnabled) return;
+
+    const checkReminder = async () => {
+      try {
+        const now = new Date();
+        const todayStr = now.toISOString().split("T")[0];
+
+        // Zaten bugün gönderildiyse tekrar gönderme
+        const storedLast = localStorage.getItem("worklogReminderLastDate");
+        const effectiveLast = storedLast ?? lastReminderDate;
+        if (effectiveLast === todayStr) return;
+
+        const [hStr, mStr] = notificationTime.split(":");
+        const targetMinutes =
+          parseInt(hStr || "17", 10) * 60 + parseInt(mStr || "0", 10);
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        if (currentMinutes < targetMinutes) return;
+
+        // Günlük tek seferlik hatırlatma (8 saat dolu olsa bile)
+        await invoke("send_jira_notification", {
+          title:
+            language === "tr" ? "Worklog Hatırlatıcı" : "Worklog Reminder",
+          body:
+            language === "tr"
+              ? "Günün worklog kayıtlarını gözden geçirip eksiklerini tamamlamayı unutma."
+              : "Remember to review and complete today's worklog entries.",
+        });
+
+        localStorage.setItem("worklogReminderLastDate", todayStr);
+        setLastReminderDate(todayStr);
+      } catch (err) {
+        console.error("Failed to send daily reminder:", err);
+      }
+    };
+
+    // İlk kontrol
+    checkReminder();
+    // Sonra her dakika kontrol et
+    reminderIntervalRef.current = window.setInterval(checkReminder, 60_000);
+
+    return () => {
+      if (reminderIntervalRef.current) {
+        clearInterval(reminderIntervalRef.current);
+        reminderIntervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationEnabled, notificationTime, workHours, language]);
 
   // 3. Timer Logic
   useEffect(() => {
@@ -152,6 +269,25 @@ function App() {
     } catch (err) {
       console.error("Failed to toggle autostart:", err);
     }
+  }
+
+  function addLogTemplate(template: string) {
+    const value = template.trim();
+    if (!value) return;
+    setLogTemplates((prev) => {
+      if (prev.includes(value)) return prev;
+      const next = [...prev, value];
+      localStorage.setItem("log_templates", JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function deleteLogTemplate(template: string) {
+    setLogTemplates((prev) => {
+      const next = prev.filter((t) => t !== template);
+      localStorage.setItem("log_templates", JSON.stringify(next));
+      return next;
+    });
   }
 
   const toggleTheme = () => {
@@ -245,6 +381,43 @@ function App() {
     }
   }
 
+  async function getJiraMyselfAccountId(params: {
+    accountId: string;
+    domain: string;
+    email: string;
+    apiToken: string;
+  }): Promise<string | null> {
+    const cached = currentUserAccountIdByAccountId[params.accountId];
+    if (cached) return cached;
+
+    try {
+      const cleanDomain = params.domain.replace(/\/+$/, "");
+      const url = `${cleanDomain}/rest/api/3/myself`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${btoa(`${params.email}:${params.apiToken}`)}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) return null;
+      const data: any = await res.json();
+      const accountId = data?.accountId;
+      if (typeof accountId !== "string" || !accountId) return null;
+
+      setCurrentUserAccountIdByAccountId((prev) => ({
+        ...prev,
+        [params.accountId]: accountId,
+      }));
+
+      return accountId;
+    } catch {
+      return null;
+    }
+  }
+
   const checkWorklogs = async () => {
     if (!activeAccountId) return;
     setIsWorklogLoading(true);
@@ -266,19 +439,37 @@ function App() {
     }
 
     try {
+      const myselfAccountId = await getJiraMyselfAccountId({
+        accountId: account.id,
+        domain: account.domain,
+        email: account.email,
+        apiToken,
+      });
+
       const today = new Date();
       let startD = new Date(today);
       let endD = new Date(today);
 
       if (viewMode === "weekly") {
-        const day = startD.getDay() || 7;
-        if (day !== 1) startD.setHours(-24 * (day - 1));
-        startD.setDate(startD.getDate() + weekOffset * 7);
-        endD = new Date(startD);
+        // Hafta başlangıcı: Pazartesi kabul edilir
+        const weekStart = new Date(today);
+        weekStart.setHours(0, 0, 0, 0);
+        const day = weekStart.getDay() || 7; // Pazar=7
+        if (day !== 1) {
+          weekStart.setDate(weekStart.getDate() - (day - 1));
+        }
+
+        // weekOffset: 0 = bu hafta, 1 = geçen hafta, 2 = ondan önceki hafta...
+        weekStart.setDate(weekStart.getDate() - weekOffset * 7);
+
+        startD = new Date(weekStart);
+        endD = new Date(weekStart);
         endD.setDate(endD.getDate() + 6);
       } else {
+        // Aylık görünüm: 0 = bu ay, 1 = geçen ay...
+        startD = new Date(today);
         startD.setDate(1);
-        startD.setMonth(startD.getMonth() + weekOffset);
+        startD.setMonth(startD.getMonth() - weekOffset);
         endD = new Date(startD);
         endD.setMonth(endD.getMonth() + 1);
         endD.setDate(0);
@@ -324,6 +515,14 @@ function App() {
       for (const issue of issues) {
         const issueLogs = issue.fields.worklog?.worklogs || [];
         for (const log of issueLogs) {
+          // Important: Jira "worklog" field includes logs by other users too.
+          // JQL filters issues by currentUser(), but the returned issue worklogs
+          // can still contain other authors. Filter by /myself accountId.
+          if (myselfAccountId) {
+            const authorAccountId = log?.author?.accountId;
+            if (authorAccountId && authorAccountId !== myselfAccountId) continue;
+          }
+
           const logDate = log.started.split("T")[0];
           if (logDate >= after && logDate <= before) {
             userWorklogs.push({
@@ -430,6 +629,77 @@ function App() {
     setRawWorklogs([]);
   };
 
+  const clearCache = async () => {
+    const ok = confirm(
+      language === "tr"
+        ? "Yumuşak cache temizliği yapılsın mı?\n\n- Worklog / issue listeleri sıfırlanır\n- Jira kullanıcı kimliği cache’i sıfırlanır\n\nHesaplar ve token’lar silinmez."
+        : "Perform a soft cache clear?\n\n- Worklog / issue lists will be reset\n- Jira user identity cache will be reset\n\nAccounts and tokens will NOT be removed."
+    );
+    if (!ok) return;
+
+    setCurrentUserAccountIdByAccountId({});
+
+    // Clear in-memory dashboard data
+    setWorkHours(0);
+    setWeeklyHours(0);
+    setMonthlyHours(0);
+    setChartData([]);
+    setRawWorklogs([]);
+    setLastJql("");
+    setAssignedIssues([]);
+
+    // Optional: refresh data immediately (even if user is on Settings page)
+    if (activeAccountId) {
+      await loadAssignedIssues();
+      await checkWorklogs();
+    }
+  };
+
+  const hardResetData = () => {
+    const ok = confirm(
+      language === "tr"
+        ? "Tüm uygulama verileri (local cache) temizlensin mi?\n\n- Kayıtlı hesap listesi ve aktif hesap bilgisi sıfırlanır\n- Tema, dil ve bildirim ayarları varsayılanlara döner\n- Jira token fallback kayıtları (jira_token_*) localStorage’dan silinir\n\nGüvenli depodaki (secure storage) token’lar silinmez, istersen hesapları yeniden ekleyebilirsin."
+        : "Clear all application data (local cache)?\n\n- Saved account list and active account info will be reset\n- Theme, language and notification settings will be restored to defaults\n- Jira token fallback entries (jira_token_*) will be removed from localStorage\n\nTokens stored in secure storage are NOT removed; you can re-add accounts later."
+    );
+    if (!ok) return;
+
+    // Remove known app keys
+    const appKeys = [
+      "theme",
+      "language",
+      "notificationEnabled",
+      "notificationTime",
+      "jira_accounts",
+      "active_account_id",
+    ];
+    appKeys.forEach((key) => localStorage.removeItem(key));
+
+    // Remove all fallback jira_token_* keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("jira_token_")) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Reset React state
+    setAccounts([]);
+    setActiveAccountId("");
+    setCurrentUserAccountIdByAccountId({});
+    setWorkHours(0);
+    setWeeklyHours(0);
+    setMonthlyHours(0);
+    setChartData([]);
+    setRawWorklogs([]);
+    setLastJql("");
+    setAssignedIssues([]);
+    setNotificationEnabled(false);
+    setNotificationTime("17:00");
+    setTheme("light");
+    setLanguage("tr");
+    setJiraStatus("mock");
+  };
+
   // --- Timer Actions ---
 
   const startTimer = () => {
@@ -507,10 +777,10 @@ function App() {
               content: [
                 {
                   type: "text",
-                  text: timerDescription || "XTime Log"
-                }
-              ]
-            }
+                  text: timerDescription || "JiraTracker Log",
+                },
+              ],
+            },
           ]
         },
         started: startedIso
@@ -698,6 +968,7 @@ function App() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         language={language}
+        privacyMode={privacyMode}
       />
 
       {currentPage === "dashboard" && (
@@ -721,6 +992,7 @@ function App() {
           assignedIssues={assignedIssues}
           isAssignedIssuesLoading={isAssignedIssuesLoading}
           language={language}
+          privacyMode={privacyMode}
         />
       )}
 
@@ -730,6 +1002,8 @@ function App() {
           addAccount={addAccount}
           deleteAccount={deleteAccount}
           activeAccountId={activeAccountId}
+          clearCache={clearCache}
+          hardResetData={hardResetData}
           notificationEnabled={notificationEnabled}
           setNotificationEnabled={(v) => {
             setNotificationEnabled(v);
@@ -746,6 +1020,14 @@ function App() {
           onCheckUpdates={handleCheckUpdates}
           language={language}
           setLanguage={changeLanguage}
+          privacyMode={privacyMode}
+          setPrivacyMode={(enabled) => {
+            setPrivacyMode(enabled);
+            localStorage.setItem("privacyMode", String(enabled));
+          }}
+          logTemplates={logTemplates}
+          onAddLogTemplate={addLogTemplate}
+          onDeleteLogTemplate={deleteLogTemplate}
         />
       )}
 
@@ -764,6 +1046,7 @@ function App() {
           effortHours={timerHoursOverride}
           setEffortHours={setTimerHoursOverride}
           language={language}
+          logTemplates={logTemplates}
         />
       )}
     </div>
