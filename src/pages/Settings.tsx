@@ -107,8 +107,8 @@ export function Settings({
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 m-0 italic">
             {isTr
-              ? "Geliştirici modu: Uygulama penceresi odaktayken Ctrl+Shift+D (macOS: Cmd+Shift+D) ile debug konsolunu açabilirsin."
-              : "Developer mode: With the app focused, press Ctrl+Shift+D (macOS: Cmd+Shift+D) to open the debug console."}
+              ? "Geliştirici modu: Varsayılan Tauri kısayolları ile (örn. çoğu platformda Ctrl+Shift+I / Cmd+Option+I) debug konsolunu açabilirsin."
+              : "Developer mode: Use the default Tauri shortcuts (e.g. on most platforms Ctrl+Shift+I / Cmd+Option+I) to open the debug console."}
           </p>
         </div>
       </div>

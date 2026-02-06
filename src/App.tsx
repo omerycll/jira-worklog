@@ -141,22 +141,6 @@ function App() {
     checkAutoStart();
   }, []);
 
-  // Global shortcut: Ctrl+Shift+D (veya Mac'te Cmd+Shift+D) ile devtools aç
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const isModifier = e.ctrlKey || e.metaKey;
-      if (isModifier && e.shiftKey && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        invoke("open_devtools").catch((err) => {
-          console.error("Failed to open devtools:", err);
-        });
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
   // 2. Persist active account
   useEffect(() => {
     if (activeAccountId) {
